@@ -1,7 +1,7 @@
 # Spec: <feature name>
 
 - **Feature ID:** <NNN-slug>
-- **Status:** draft | approved
+- **Status:** draft | needs-approval | approved
 - **Author:** <name>
 - **Date:** <YYYY-MM-DD>
 
@@ -22,3 +22,10 @@
 
 ## Open questions
 - [NEEDS CLARIFICATION: <question>]
+
+## Changelog
+> Appended by `/specify --amend` whenever an approved requirement changes (Article IX).
+
+| Date | Change | Why | Trigger |
+|------|--------|-----|---------|
+| <YYYY-MM-DD> | initial spec | — | specify |

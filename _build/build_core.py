@@ -64,6 +64,27 @@ own artifact.
 ## Article VIII — Honesty about limits
 Agents report blockers, missing context, and uncertainty plainly. A wrong answer
 delivered confidently is worse than a flagged unknown.
+
+## Article IX — The spec is amended, never bypassed
+When implementation reveals the spec is wrong or incomplete, work **stops**. You do
+not silently edit code around the spec. You run the **amendment protocol**: change
+the affected `REQ`, log it in the spec changelog, set the spec back to
+`needs-approval`, get re-approval at the gate, then regenerate only the impacted
+tasks. Code and spec move together or not at all. (See `flow/sync.md`.)
+
+## Article X — Durable memory lives in `context.md`
+Every feature keeps a `context.md` decision journal: constraints, assumptions,
+rejected alternatives, and a dated decision log. It is updated **as work happens**,
+not reconstructed afterward. Any agent starting a fresh session re-reads
+`spec.md` + `plan.md` + `tasks.md` (status) + `context.md` before acting. This is
+what prevents "why was it built this way?" amnesia two weeks later.
+
+## Article XI — Traceability is machine-verified
+Rastreability is not an honor system. Requirements are tagged in code and tests
+(`REQ-xxx`), and `scripts/trace.py` builds the matrix from the *real* tree and
+**fails CI** when an implemented requirement has no test, or code references a
+requirement no spec declares. A spec only "counts" while the build proves it is in
+sync with what ships.
 """)
 
 
@@ -99,6 +120,15 @@ write("flow/specify.md", r"""
    with `[NEEDS CLARIFICATION: …]` rather than inventing an answer.
 7. Save the file. Summarise the spec in 3–5 bullets and **stop**: ask the human to
    review and approve, or list the `[NEEDS CLARIFICATION]` items blocking approval.
+
+## Amendment mode (`/specify --amend <feature>`)
+Use this when a *later* phase discovers the spec is wrong or incomplete (Article IX).
+Do **not** rewrite the whole spec:
+1. Edit only the affected `REQ-xxx` (or add a new one with the next ID — never reuse).
+2. Append a row to the spec's `## Changelog`: date, what changed, why, who triggered it.
+3. Set `Status: needs-approval` and stop for re-approval at the gate.
+4. After approval, hand off to `/tasks --refresh` so only the impacted tasks regenerate,
+   then resume `/implement`. Record the amendment in the feature's `context.md`.
 
 ## Definition of done
 - Every requirement is EARS-formatted, ID'd, and has acceptance criteria.
@@ -161,6 +191,13 @@ list where each task is small, testable, and independently committable.
 6. Save the file. Summarise the task graph (count, parallelizable set, critical
    path) and **stop** for human approval.
 
+## Refresh mode (`/tasks --refresh <feature>`)
+Triggered after a spec amendment (Article IX). Do **not** rebuild the whole list:
+1. Diff the amended spec against the current tasks.
+2. Mark tasks tied to a changed `REQ` as `stale`; add new tasks for new requirements.
+3. Leave untouched tasks (and their commits) exactly as they are.
+4. Summarise what changed and stop for approval before re-running `/implement`.
+
 ## Definition of done
 - Every task is ID'd, traces to a REQ and a plan component, and names its tests.
 - Dependencies form a valid DAG (no cycles). The human has approved.
@@ -175,6 +212,14 @@ orchestrator**; each task is delegated to an isolated worker so context stays cl
 **Inputs:** approved `specs/<feature>/tasks.md`, the plan, the spec, the constitution.
 **Output:** working, tested code; one commit per task.
 
+## Before you start
+1. **Gate check.** Confirm `spec.md` and `plan.md` both read `Status: approved`
+   (or run `python scripts/check_gate.py specs/<feature>`). If not, stop — you are
+   not cleared to implement.
+2. **Resume context (Article X).** Re-read `spec.md`, `plan.md`, `tasks.md` (note
+   each task's status), and `context.md` before touching code. Find the first task
+   that is `todo` with all `depends_on` satisfied; that is where you start.
+
 ## Orchestration loop
 For each task in dependency order (parallelize independent tasks where the tool allows):
 
@@ -184,18 +229,28 @@ For each task in dependency order (parallelize independent tasks where the tool 
    needs: the task, its REQs, the relevant plan section, and the files in scope.
 2. **TDD.** The worker writes the failing test first, then the minimal code to pass,
    then refactors. It does **not** touch files outside the task's declared scope.
+   **Tag traceability:** put the `REQ-xxx` ID in a comment beside the code that
+   satisfies it and in the test (name or comment), so `scripts/trace.py` can see it.
 3. **Verify locally.** Run the task's tests plus lint/typecheck. If red, fix within
    the task; if blocked, stop and report — do not expand scope.
 4. **Commit.** One conventional commit referencing the task and REQ
-   (e.g. `feat(T-003): add rate limiter [REQ-007]`). Then continue to the next task.
+   (e.g. `feat(T-003): add rate limiter [REQ-007]`). Record the commit SHA next to
+   the task in `tasks.md` and flip its status to `done`. Then continue.
 5. **Log blockers.** Anything discovered but out of scope is recorded as a new
    task in `tasks.md`, not fixed inline.
 
+## When reality contradicts the spec (the reverse path — Article IX)
+If implementation reveals the spec is wrong or incomplete, **do not patch around it**:
+1. Stop the current task and write what you learned into `context.md`.
+2. Run `/specify --amend <feature>` to fix the affected `REQ`, then `/tasks --refresh`.
+3. Re-approve at the gate, then resume here. The spec and code move together.
+Use `/sync` at any time to detect drift between what shipped and what the spec says.
+
 ## Rules
 - Never start a task whose `depends_on` set is unmet.
-- Never edit the spec or plan from here; if reality contradicts them, stop and
-  kick back to Phase 1/2.
-- Keep `tasks.md` updated with status (`todo` / `doing` / `done` / `blocked`).
+- Never silently edit an approved spec/plan from here — use the amendment protocol above.
+- Keep `tasks.md` status current (`todo` / `doing` / `done` / `blocked` / `stale`).
+- Keep `context.md` current: log every non-obvious decision and constraint as you go.
 
 ## Definition of done
 - Every task is `done` with a passing test and its own commit, or explicitly `blocked`
@@ -211,10 +266,12 @@ write("flow/verify.md", r"""
 **Output:** a verification report (and, if gaps exist, new tasks in `tasks.md`).
 
 ## Procedure
-1. Build a **traceability matrix**: for every `REQ-xxx`, list the test(s) that
-   cover it and the task(s)/commit(s) that implemented it.
+1. Run `python scripts/trace.py` to build the traceability matrix from the real
+   tree, then cross-check it: for every `REQ-xxx`, the test(s) that cover it and the
+   task(s)/commit(s) that implemented it.
 2. Flag any requirement with **no** covering test (Article V violation) and any
-   test that maps to **no** requirement (scope creep).
+   `REQ` marker that maps to **no** requirement (scope creep). Run `/sync` if drift
+   is found.
 3. Run the full test suite, lint, and typecheck. Record results.
 4. Re-read each acceptance criterion in the spec and confirm a test asserts it.
 5. Check the constitution: small commits? human gates respected? context isolation
@@ -237,7 +294,7 @@ write("templates/spec.template.md", r"""
 # Spec: <feature name>
 
 - **Feature ID:** <NNN-slug>
-- **Status:** draft | approved
+- **Status:** draft | needs-approval | approved
 - **Author:** <name>
 - **Date:** <YYYY-MM-DD>
 
@@ -258,6 +315,13 @@ write("templates/spec.template.md", r"""
 
 ## Open questions
 - [NEEDS CLARIFICATION: <question>]
+
+## Changelog
+> Appended by `/specify --amend` whenever an approved requirement changes (Article IX).
+
+| Date | Change | Why | Trigger |
+|------|--------|-----|---------|
+| <YYYY-MM-DD> | initial spec | — | specify |
 """)
 
 write("templates/plan.template.md", r"""
@@ -350,6 +414,11 @@ limit is exceeded.
 
 ## Open questions
 - (resolved) Limit is fixed at 100/min for v1.
+
+## Changelog
+| Date | Change | Why | Trigger |
+|------|--------|-----|---------|
+| 2026-06-08 | initial spec | — | specify |
 """)
 
 write("specs/001-api-rate-limit/plan.md", r"""
@@ -406,18 +475,121 @@ write("specs/001-api-rate-limit/tasks.md", r"""
 - **Status:** approved
 - **Plan:** ./plan.md
 
-> Status legend: todo · doing · done · blocked
+> Status legend: todo · doing · done · blocked · stale
 
-| ID | Task | Serves | Component | depends_on | Tests | Status |
-|----|------|--------|-----------|------------|-------|--------|
-| T-001 | Write failing unit tests for sliding-window math incl. boundary | REQ-001, REQ-004 | RateLimiter | — | test_rate_limiter.py | todo |
-| T-002 | Implement RateLimiter + in-memory store to pass T-001 | REQ-001, REQ-004 | RateLimiter, store | T-001 | test_rate_limiter.py | todo |
-| T-003 | Write failing integration tests for 429 + headers | REQ-002, REQ-003 | middleware | T-002 | test_middleware.py | todo |
-| T-004 | Implement rate_limit_middleware to pass T-003 | REQ-002, REQ-003 | middleware | T-003 | test_middleware.py | todo |
-| T-005 | Verify: traceability matrix + full suite green | all | — | T-004 | full suite | todo |
+| ID | Task | Serves | Component | depends_on | Tests | Status | Commit |
+|----|------|--------|-----------|------------|-------|--------|--------|
+| T-001 | Write failing unit tests for sliding-window math incl. boundary | REQ-001, REQ-004 | RateLimiter | — | test_rate_limiter.py | todo | — |
+| T-002 | Implement RateLimiter + in-memory store to pass T-001 | REQ-001, REQ-004 | RateLimiter, store | T-001 | test_rate_limiter.py | todo | — |
+| T-003 | Write failing integration tests for 429 + headers | REQ-002, REQ-003 | middleware | T-002 | test_middleware.py | todo | — |
+| T-004 | Implement rate_limit_middleware to pass T-003 | REQ-002, REQ-003 | middleware | T-003 | test_middleware.py | todo | — |
+| T-005 | Verify: traceability matrix + full suite green | all | — | T-004 | full suite | todo | — |
 
 ## Notes / blockers
 - none yet
+""")
+
+# --------------------------------------------------------------------------
+# flow/sync.md  — the reverse path: detect & reconcile drift
+# --------------------------------------------------------------------------
+write("flow/sync.md", r"""
+# Phase R — Sync (the reverse path)
+
+**Goal:** detect and reconcile **drift** between what the spec says and what the
+code actually does. This is the answer to "a spec only earns its keep while it stays
+synced with what ships." Run it any time, and always before declaring a feature done.
+
+**Inputs:** the spec/plan/tasks, the implemented code + tests, git history.
+**Output:** a drift report; for each drift, a concrete reconciliation action.
+
+## Three states
+- **In sync** — every `REQ` has matching code + tests; no stray `REQ` markers. ✅
+- **Spec ahead** — a `REQ` exists but code/tests don't implement it yet → it is just
+  unstarted work; make sure a task covers it.
+- **Code ahead** — code implements behaviour the spec doesn't describe, or references a
+  `REQ` no spec declares → this is **drift**. Either the spec must be amended to
+  capture the new intent, or the code is scope creep to remove.
+
+## Procedure
+1. Run `python scripts/trace.py` to build the matrix from the real tree (it lists
+   uncovered REQs, untested REQs, and unknown `REQ` markers).
+2. Compare git history against `tasks.md`: any commit touching feature code whose task
+   is not `done`, or any `done` task with no commit, is drift.
+3. Classify every gap into one of the three states above.
+4. For each **code-ahead** drift, decide *with the human*:
+   - intent was real → `/specify --amend` to capture it as a REQ, then `/tasks --refresh`;
+   - it was scope creep → open a task to remove or gate it.
+5. For each **spec-ahead** gap, ensure a task exists (or create one).
+6. Update `context.md` with what drifted and how it was reconciled.
+7. Present the report and **stop**. Do not auto-amend the spec without approval.
+
+## Definition of done
+- `scripts/trace.py` exits clean (no uncovered/unknown REQs for implemented work).
+- Every drift is either reconciled or captured as an approved task. `context.md` updated.
+""")
+
+# --------------------------------------------------------------------------
+# templates/context.template.md  — the per-feature decision journal
+# --------------------------------------------------------------------------
+write("templates/context.template.md", r"""
+# Context journal: <feature name>  (<NNN-slug>)
+
+> Durable memory for this feature (Constitution, Article X). Update it **as you
+> work**, not afterward. Any agent or teammate starting fresh reads this first.
+
+## Constraints
+- <hard limits: deadlines, compatibility, perf budgets, things you must not break>
+
+## Assumptions
+- <what we are taking as given, and what would change if it turns out false>
+
+## Decisions log
+| Date | Decision | Why | Trigger |
+|------|----------|-----|---------|
+| YYYY-MM-DD | <what was decided> | <reasoning> | spec / plan / implement / sync |
+
+## Rejected alternatives
+- <option> — rejected because <reason> (so nobody re-litigates it in 2 weeks)
+
+## Open questions
+- <unknowns still in the air>
+
+## Session resume
+- **Last commit:** <sha>
+- **Next task:** <T-xxx>
+- **Watch out:** <gotchas the next session should know>
+""")
+
+write("specs/001-api-rate-limit/context.md", r"""
+# Context journal: Per-client API rate limiting  (001-api-rate-limit)
+
+> Durable memory for this feature (Constitution, Article X). Update it as you work.
+
+## Constraints
+- v1 runs on a single node; no shared store across regions (see spec Non-goals).
+- Must not add latency to the happy path beyond a single in-memory lookup.
+
+## Assumptions
+- 100 req/min is the right default for v1 (confirmed with product; revisit at GA).
+- Clients are uniquely identified by API key; anonymous traffic is out of scope.
+
+## Decisions log
+| Date | Decision | Why | Trigger |
+|------|----------|-----|---------|
+| 2026-06-08 | Sliding window over fixed window | Avoids burst-at-boundary; simpler than token bucket for a fixed cap | plan |
+| 2026-06-08 | In-memory store, no persistence | Single-node v1; restart-loss is acceptable per Non-goals | plan |
+
+## Rejected alternatives
+- Token bucket — rejected: more moving parts than needed for a fixed per-minute cap.
+- Redis-backed counter — rejected for v1: pulls in infra a single node doesn't need yet.
+
+## Open questions
+- Should limits become per-tier later? Tracked as a future feature, not this one.
+
+## Session resume
+- **Last commit:** (not started)
+- **Next task:** T-001
+- **Watch out:** write the window-boundary test first — it's the easy thing to get wrong.
 """)
 
 print("core: done")

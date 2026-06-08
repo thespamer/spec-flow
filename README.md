@@ -10,8 +10,11 @@ disciplined engineering team instead of an over-eager solo coder.
 ```
 constitution ──▶ /specify ──▶ /plan ──▶ /tasks ──▶ /implement ──▶ /verify
    (always)       spec.md      plan.md    tasks.md     code+commits   report
-                     │            │           │
-                   GATE         GATE        GATE   ◀── you approve before advancing
+                     │            │           │             │
+                   GATE         GATE        GATE            │  ◀── you approve to advance
+                     ▲                                      │
+                     └──────────── /sync (reverse) ◀────────┘
+              when code drifts, amend the spec — never bypass it
 ```
 
 ## Why this design
@@ -32,15 +35,17 @@ One source of truth, thin adapters per tool — the 2026 cross-tool consensus:
 spec-flow/
 ├── AGENTS.md                 # universal source of truth (Codex/Cursor/Copilot/Antigravity)
 ├── CLAUDE.md  GEMINI.md      # thin tool pointers
-├── memory/constitution.md    # always-on principles
+├── memory/constitution.md    # always-on principles (11 articles)
 ├── flow/                     # canonical phase procedures (edit these)
-│   ├── specify.md  plan.md  tasks.md  implement.md  verify.md
-├── templates/                # spec / plan / tasks artifact templates (EARS)
-├── specs/001-api-rate-limit/ # worked example (spec + plan + tasks)
+│   ├── specify.md  plan.md  tasks.md  implement.md  verify.md  sync.md
+├── templates/                # spec / plan / tasks / context templates (EARS)
+├── specs/001-api-rate-limit/ # worked example (spec + plan + tasks + context journal)
+├── scripts/                  # trace.py (CI traceability) + check_gate.py (approval gate)
+├── docs/context-drift.md     # the anti-drift chapter — read this
 ├── .claude/                  # Claude Code: skills/ + agents/ + settings.json (hooks)
 ├── .cursor/                  # Cursor: rules/ + commands/
 ├── .agents/                  # Antigravity: rules/ + workflows/
-└── .github/                  # VS Code/Copilot: copilot-instructions.md + prompts/
+└── .github/                  # VS Code/Copilot: copilot-instructions.md + prompts/ + workflows/ci
 ```
 
 ## Installing it into your project
@@ -218,6 +223,31 @@ dependency-aware task DAG before you start your own feature.
 | **tasks** | `tasks.md` — small, testable, dependency-aware tasks | approve before implement |
 | **implement** | tested code, one commit per task (TDD, isolated workers) | — |
 | **verify** | traceability matrix; every REQ covered by a test | done |
+| **sync** | drift report; reconciles spec ↔ shipped code (reverse path) | run anytime |
+
+## Keeping spec & code in sync (the anti-drift chapter)
+
+> A spec only earns its keep while it stays synced with what ships. The moment code
+> edits bypass it, the drift and the "why was this built this way?" amnesia come back.
+
+That problem — context drift — gets its own chapter: **[docs/context-drift.md](./docs/context-drift.md)**.
+The short version is that spec-flow turns *discipline* into *mechanism* with four parts:
+
+1. **Machine-checked traceability.** You tag `REQ-xxx` in code and tests;
+   `scripts/trace.py` builds the matrix from the real tree and **fails CI**
+   (`.github/workflows/spec-flow.yml`) if an implemented requirement has no test, or
+   code references a `REQ` no spec declares.
+2. **The reverse path — `/sync`.** Detects drift and classifies it (in-sync /
+   spec-ahead / code-ahead), proposing a concrete reconciliation for each gap.
+3. **The amendment protocol.** When implementation contradicts the spec you don't
+   patch around it: `/specify --amend` → `/tasks --refresh` → re-approve → resume.
+   The spec is amended, never bypassed (Constitution, Article IX).
+4. **A decision journal per feature.** `context.md` is durable memory — constraints,
+   rejected alternatives, a dated decision log — read at the start of every session so
+   the "why" survives even when no one remembers it two weeks later (Article X).
+
+There is also a real approval gate: `python scripts/check_gate.py specs/<feature>`
+refuses to let `/implement` start until `spec.md` and `plan.md` are `approved`.
 
 ## Extending
 

@@ -1,0 +1,19 @@
+name: spec-flow traceability
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  trace:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check spec <-> code traceability
+        # Fails the build if an implemented requirement has no test, or code
+        # references a REQ that no spec declares. See scripts/trace.py.
+        run: python scripts/trace.py

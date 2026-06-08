@@ -27,6 +27,15 @@
 7. Save the file. Summarise the spec in 3–5 bullets and **stop**: ask the human to
    review and approve, or list the `[NEEDS CLARIFICATION]` items blocking approval.
 
+## Amendment mode (`/specify --amend <feature>`)
+Use this when a *later* phase discovers the spec is wrong or incomplete (Article IX).
+Do **not** rewrite the whole spec:
+1. Edit only the affected `REQ-xxx` (or add a new one with the next ID — never reuse).
+2. Append a row to the spec's `## Changelog`: date, what changed, why, who triggered it.
+3. Set `Status: needs-approval` and stop for re-approval at the gate.
+4. After approval, hand off to `/tasks --refresh` so only the impacted tasks regenerate,
+   then resume `/implement`. Record the amendment in the feature's `context.md`.
+
 ## Definition of done
 - Every requirement is EARS-formatted, ID'd, and has acceptance criteria.
 - No `[NEEDS CLARIFICATION]` markers remain (or they are explicitly accepted by the human).

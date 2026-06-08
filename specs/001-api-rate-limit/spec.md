@@ -28,3 +28,8 @@ limit is exceeded.
 
 ## Open questions
 - (resolved) Limit is fixed at 100/min for v1.
+
+## Changelog
+| Date | Change | Why | Trigger |
+|------|--------|-----|---------|
+| 2026-06-08 | initial spec | — | specify |
