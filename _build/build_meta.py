@@ -58,11 +58,65 @@ spec-flow/
 └── .github/                  # VS Code/Copilot: copilot-instructions.md + prompts/
 ```
 
-## Install & use
+## Installing it into your project
 
-Drop these files into your project root (or keep this as a template repo and copy
-the folders you need). Then, in **AGENTS.md → Commands**, fill in your project's
-real test / lint / build commands.
+**Everything goes at the root of the project you open in your editor.** These folders
+are not optional extras to scatter around — each tool only finds its config when the
+folder sits at the repository root. Copy the *contents* of this repo into your project
+root so it looks like this:
+
+```
+your-project/
+├── AGENTS.md              # read by Codex, Cursor, Copilot, Antigravity
+├── CLAUDE.md  GEMINI.md   # tool pointers (must be at root)
+├── memory/                # constitution.md
+├── flow/                  # the 5 phase procedures
+├── templates/             # spec / plan / tasks templates
+├── specs/                 # your features live here
+├── .claude/               # Claude Code      → skills/ + agents/ + settings.json
+├── .cursor/               # Cursor           → rules/ + commands/
+├── .agents/               # Antigravity      → rules/ + workflows/
+└── .github/               # VS Code/Copilot  → copilot-instructions.md + prompts/
+```
+
+Which tool reads which folder, and how you trigger a phase:
+
+| Tool | Reads from (at root) | Invoke a phase |
+|------|----------------------|----------------|
+| Claude Code | `.claude/skills/`, `.claude/agents/` | type `/specify` in chat |
+| OpenAI Codex | `AGENTS.md` (+ `.claude/skills/`) | ask it to run `/specify` |
+| Cursor | `.cursor/rules/`, `.cursor/commands/` | type `/specify` |
+| GitHub Copilot (VS Code) | `.github/copilot-instructions.md`, `.github/prompts/` | type `/specify` |
+| Google Antigravity | `.agents/rules/`, `.agents/workflows/` | type `/specify` |
+
+The shared parts (`AGENTS.md`, `flow/`, `memory/`, `templates/`, `specs/`) are used by
+**every** tool. The dot-folders are the thin per-tool adapters. Keep all of them — a
+single project can be opened by teammates using different tools.
+
+### ⚠️ Watch out — these are hidden folders
+
+`.claude`, `.cursor`, `.agents`, and `.github` start with a dot, so they are
+**hidden files**. Two things go wrong most often when you unzip:
+
+1. **Nesting.** Extracting `spec-flow.zip` may create a `spec-flow/` parent folder. You
+   want the *contents* at your root, not a `spec-flow/` subfolder. Move them up one level.
+2. **Dotfiles skipped.** Some unzip tools / file managers silently skip files that start
+   with a dot. Confirm the dot-folders actually arrived.
+
+Verify from your project root before you start:
+
+```bash
+ls -la .claude/skills    # must list: specify  plan  tasks  implement  verify
+ls -la                   # confirm AGENTS.md, flow/, memory/, specs/ are here too
+```
+
+If the five skill folders show up, open your editor at this root and type `/specify`.
+If the editor was already open, **restart the session** so it reloads the new config.
+
+## Running the phases
+
+Once installed, fill in your project's real test / lint / build commands under
+**AGENTS.md → Commands**, then drive the work from your editor's agent chat.
 
 ### Claude Code
 Skills auto-register from `.claude/skills/`. Run the phases as slash commands:
