@@ -96,6 +96,73 @@ prompt files in `.github/prompts/` (type `/specify`, `/plan`, … in chat).
 the workflows in `.agents/workflows/` (`/specify`, `/plan`, …) in agent chat.
 Antigravity also honours `AGENTS.md`.
 
+## Adding a new feature in practice
+
+This is the day-to-day loop. The unit of work is a **feature folder** under
+`specs/` — *not* a task. Tasks are **rows inside** that feature's `tasks.md`, not
+subfolders.
+
+```
+specs/
+└── 002-user-auth/        # one folder per feature (the NNN- prefix just orders them)
+    ├── spec.md           # what & why  — requirements REQ-001, REQ-002, …
+    ├── plan.md           # how         — architecture & decisions
+    └── tasks.md          # the tasks   — rows T-001, T-002, … (not subfolders)
+```
+
+You almost never create these files by hand — you run the phases and let each one
+write the next artifact into the folder. There are two ways to start.
+
+### Path A — let the pipeline drive it (recommended)
+
+You don't even create the folder yourself. In your editor's agent chat:
+
+1. **`/specify`** → describe the feature, e.g. *"login with email + password, lock
+   the account after 5 failed attempts"*. The agent picks the next number (`002-`),
+   creates `specs/002-user-auth/`, writes `spec.md` in EARS format, and **stops** for
+   your review.
+2. Read `spec.md`, fix anything, then say *"approved"*.
+3. **`/plan`** → reads the approved spec, writes `plan.md`, stops.
+4. **`/tasks`** → reads the plan, writes `tasks.md` (the task DAG), stops.
+5. **`/implement`** → works the tasks one at a time: failing test → code → refactor →
+   one commit per task.
+6. **`/verify`** → builds the REQ↔test matrix and confirms nothing is uncovered.
+
+You approve at each of the three gates; the agent never jumps a gate on its own.
+
+### Path B — hand-write the spec, let the pipeline do the rest
+
+Useful when you already know the requirements:
+
+```bash
+mkdir -p specs/002-user-auth
+cp templates/spec.template.md specs/002-user-auth/spec.md
+# edit spec.md — fill in REQ-001, REQ-002, … each with acceptance criteria
+```
+
+Then point the agent at it: *"run /plan for specs/002-user-auth/spec.md"*. From here
+it is identical to Path A (plan → tasks → implement → verify).
+
+### Adding a task to an existing feature
+
+A task is **a row, not a folder**. Open that feature's `tasks.md` and add a line:
+
+```
+| T-006 | Add password-strength check | REQ-004 | auth/validators | T-002 | test_validators.py | todo |
+```
+
+Give it an ID, the `REQ` it serves, its file scope, what it `depends_on`, and the
+test that proves it. `/implement` then picks it up in dependency order. (You can
+also just ask `/tasks` to regenerate the list from the plan.)
+
+### The one rule that makes it all work
+
+Every requirement in `spec.md` needs a stable **`REQ-xxx` ID**. That ID is the thread
+`/plan` maps to components and `/verify` traces to tests. A spec written as loose
+prose without IDs will still run, but you lose the traceability that is the whole
+point (Constitution, Article V). When unsure of the shape, copy
+`specs/001-api-rate-limit/` — it is the reference mould.
+
 ## A full run (the included example)
 
 `specs/001-api-rate-limit/` shows the artifacts for a real feature — per-client
