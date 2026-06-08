@@ -1,0 +1,11 @@
+---
+description: Spec-driven development pipeline — always applied.
+alwaysApply: true
+---
+
+This repo follows the spec-driven pipeline in [AGENTS.md](mdc:AGENTS.md) and the
+principles in [memory/constitution.md](mdc:memory/constitution.md).
+
+Never write production code before an approved `spec.md` and `plan.md`. Use the
+slash commands `/specify`, `/plan`, `/tasks`, `/implement`, `/verify`, each of
+which follows the matching `flow/<phase>.md`. Stop at every human gate.

@@ -1,0 +1,21 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+
+# Dependencies / build
+node_modules/
+__pycache__/
+*.pyc
+dist/
+build/
+.venv/
+venv/
+
+# Agent local state (keep shared config, ignore machine-local runtime)
+.gemini/antigravity/conversations/
+.gemini/antigravity/brain/
+
+# Env
+.env
+.env.local
