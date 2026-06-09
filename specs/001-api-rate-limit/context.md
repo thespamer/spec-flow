@@ -32,8 +32,8 @@
 
 ## Session resume
 - **Last commit:** 8dabb4a (T-004)
-- **Next task:** T-005 (`/verify`)
-- **Watch out:** T-003 101st-request test uses same `now` instant — spreading timestamps over 100s lets the sliding window evict early entries.
+- **Next task:** T-006 (optional lint config) or feature closed
+- **Verification outcome (2026-06-09):** T-005 done. All 4 REQs covered. 8/8 tests pass. `trace.py` exit 0. Constitution: all articles pass. Only finding: no enforced lint (E501 warnings, non-blocking). Feature closed by human gate approval.
 
 ## Decisions log (continued)
 | Date | Decision | Why | Trigger |
