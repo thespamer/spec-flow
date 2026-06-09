@@ -27,12 +27,13 @@ def test_req_002_rejects_101st_request_with_429():
 
     environ_base = {"HTTP_X_API_KEY": key, "REQUEST_METHOD": "GET"}
 
-    for i in range(LIMIT):
+    # Same window instant so all 100 count together (sliding window, not spread over 100s).
+    for _ in range(LIMIT):
         status_headers.clear()
-        list(app({**environ_base, "rate_limit.now": str(1000.0 + i)}, capture_start_response))
+        list(app({**environ_base, "rate_limit.now": "1000.0"}, capture_start_response))
 
     status_headers.clear()
-    list(app({**environ_base, "rate_limit.now": str(1000.0 + LIMIT)}, capture_start_response))
+    list(app({**environ_base, "rate_limit.now": "1000.0"}, capture_start_response))
 
     status, _ = status_headers[0]
     assert status.startswith("429")
