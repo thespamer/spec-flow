@@ -7,7 +7,7 @@
 
 | ID | Task | Serves | Component | depends_on | Tests | Status | Commit |
 |----|------|--------|-----------|------------|-------|--------|--------|
-| T-001 | Write failing unit tests for sliding-window math incl. boundary | REQ-001, REQ-004 | RateLimiter | — | test_rate_limiter.py | todo | — |
+| T-001 | Write failing unit tests for sliding-window math incl. boundary | REQ-001, REQ-004 | RateLimiter | — | test_rate_limiter.py | doing | — |
 | T-002 | Implement RateLimiter + in-memory store to pass T-001 | REQ-001, REQ-004 | RateLimiter, store | T-001 | test_rate_limiter.py | todo | — |
 | T-003 | Write failing integration tests for 429 + headers | REQ-002, REQ-003 | middleware | T-002 | test_middleware.py | todo | — |
 | T-004 | Implement rate_limit_middleware to pass T-003 | REQ-002, REQ-003 | middleware | T-003 | test_middleware.py | todo | — |
