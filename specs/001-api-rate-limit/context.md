@@ -23,7 +23,20 @@
 ## Open questions
 - Should limits become per-tier later? Tracked as a future feature, not this one.
 
+## Drift / sync log
+| Date | State | Finding | Reconciliation |
+|------|-------|---------|----------------|
+| 2026-06-09 | spec ahead | REQ-001–004 declared & task-covered; no code, tests, or task commits yet | No amend needed. Proceed with `/implement` starting T-001. |
+| 2026-06-09 | in sync | No unknown `REQ` markers in project code; no code-ahead drift | — |
+| 2026-06-09 | in sync | `tasks.md` ↔ git: all T-001–T-005 are `todo`; no orphan commits | — |
+
 ## Session resume
-- **Last commit:** (not started)
-- **Next task:** T-001
-- **Watch out:** write the window-boundary test first — it's the easy thing to get wrong.
+- **Last commit:** 8dabb4a (T-004)
+- **Next task:** T-005 (`/verify`)
+- **Watch out:** T-003 101st-request test uses same `now` instant — spreading timestamps over 100s lets the sliding window evict early entries.
+
+## Decisions log (continued)
+| Date | Decision | Why | Trigger |
+|------|----------|-----|---------|
+| 2026-06-09 | `api_rate_limit/` package at repo root | Example feature ships in spec-flow repo itself; no pre-existing app layout | implement |
+| 2026-06-09 | WSGI middleware + `rate_limit.now` test hook | Stdlib-only; injectable clock for deterministic integration tests | implement T-004 |
