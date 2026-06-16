@@ -8,4 +8,6 @@ def c_to_f(celsius: float) -> float:
 
 def f_to_c(fahrenheit: float) -> float:
     """REQ-003, REQ-005: Convert Fahrenheit to Celsius."""
-    raise NotImplementedError()
+    if fahrenheit < -459.67:
+        raise ValueError("Temperature below absolute zero (-459.67°F) is physically impossible.")
+    return (fahrenheit - 32.0) / 1.8
