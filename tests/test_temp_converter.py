@@ -1,6 +1,6 @@
 from __future__ import annotations
 import pytest
-from temp_converter.converter import c_to_f
+from temp_converter.converter import c_to_f, f_to_c
 
 def test_c_to_f_normal() -> None:
     """REQ-002: Test typical temperature conversions from Celsius to Fahrenheit."""
@@ -18,3 +18,20 @@ def test_c_to_f_below_absolute_zero() -> None:
         c_to_f(-273.16)
     with pytest.raises(ValueError):
         c_to_f(-1000.0)
+
+def test_f_to_c_normal() -> None:
+    """REQ-003: Test typical temperature conversions from Fahrenheit to Celsius."""
+    assert f_to_c(32.0) == pytest.approx(0.0)
+    assert f_to_c(212.0) == pytest.approx(100.0)
+
+def test_f_to_c_absolute_zero_boundary() -> None:
+    """REQ-003, REQ-005: Test conversion at exactly absolute zero."""
+    assert f_to_c(-459.67) == pytest.approx(-273.15)
+
+def test_f_to_c_below_absolute_zero() -> None:
+    """REQ-005: Test values below absolute zero raise ValueError."""
+    with pytest.raises(ValueError):
+        f_to_c(-459.68)
+    with pytest.raises(ValueError):
+        f_to_c(-1000.0)
+
